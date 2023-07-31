@@ -1,42 +1,29 @@
-#Defining the pattern
-
 library(stringr)
+library(mmand)
+library(ape)
+
+#Defining the pattern
 amino = c("A","R","N","D","C","Q","E","G","H","I","L","K", "M","S","F","P","T","W","Y","V")
-count =1
-pattern = c()
-for(i in 1:length(amino))
-{
-  for(j in 1:length(amino))
-  {
-    pattern[count] = str_c(amino[i],amino[j])
-    count =count +1
-  }
-}
-
-
+pattern <- expand.grid(amino, amino)
+pattern <- str_c(pattern$Var1, pattern$Var2)
 
 #Finding the frequency
-
 frequency =list()
 LOF =list()
 listofsequence= read.table("drosophilaaligned.txt")
 listofsequence_clean = str_trim(listofsequence[[1]])
-for(i in 1:length(listofsequence_clean)) {
-  frequency[[i]]= str_count(listofsequence_clean[[i]],pattern)
-}
-for(i in 1:length(listofsequence_clean))
-{
-  LOF[[i]] = matrix(frequency[[i]], ncol =20, nrow=20)
-}
-for(i in 1:length(LOF))
-{
-  colnames(LOF[[i]]) = amino
-  rownames(LOF[[i]]) = amino
-}
+frequency <- lapply(listofsequence_clean, function(seq) str_count(seq, pattern))
+LOF <- lapply(frequency, function(f) {
+  mat <- matrix(f, ncol = 20, nrow = 20)
+  colnames(mat) <- amino
+  rownames(mat) <- amino
+  mat
+})
+
+# Calculate the number of matrices in LOF
+num_matrices <- length(LOF)
 
 #Finding Infima and Suprema
-
-
 infima = matrix(,ncol =20 ,nrow=20)
 suprema =matrix(,ncol =20, nrow=20)
 loi= list()
@@ -173,21 +160,19 @@ for(counter in 1:length(LOF))
 erosionmatrix = matrix(ni, nrow =length(LOF),ncol =length(LOF))
 
 #Ranking The pairs of spatial fields based on spatial interactions
-
 rank = matrix(, ncol =length(LOF),nrow =length(LOF))
-for(i in 1:length(LOF))
-{
-  for(j in 1:length(LOF))
-  {
-    rank[i,j] = ((areamatrixI[i,j]/areamatrixS[i,j])*(min(dilationmatrix[i,j],erosionmatrix[i,j])/max(dilationmatrix[i,j],erosionmatrix[i,j])))
-  }
-}
+min_matrix <- pmin(dilationmatrix, erosionmatrix)
+max_matrix <- pmax(dilationmatrix, erosionmatrix)
 
+# Calculate the intermediate division result
+division_result <- areamatrixI / areamatrixS
+
+# Calculate the rank matrix using element-wise operations
+rank <- division_result * (min_matrix / max_matrix)
 
 hcl = hclust(as.dist(rank), method = "single")
 plot(hcl)
 heatmap(rank, Rowv = NA,Colv = NA, col = paste("gray", 1:99, sep =""))
 
-library(ape)
 fit<-hclust(as.dist(rank),method='ward')
-plot(as.phylo(fit),type='fan',label.offset=0.1,no.margin=TRUE)    
+plot(as.phylo(fit),type='fan',label.offset=0.1,no.margin=TRUE)
