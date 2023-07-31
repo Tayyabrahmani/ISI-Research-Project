@@ -5,32 +5,29 @@ amino = c("a","b","c","d","e","f","g","h")
 listofsequence= read.table("drosophilaaligned.txt", sep = "\t")
 counter =1
 listofsequence_clean = str_trim(listofsequence[[1]])
-for(i in 1 :length(listofsequence_clean))
-{
-  listofsequence_clean[i] = str_replace_all(listofsequence_clean[i],"[DE]", "a") 
-  listofsequence_clean[i] = str_replace_all(listofsequence_clean[i],"[RHK]", "b")
-  listofsequence_clean[i] = str_replace_all(listofsequence_clean[i],"[YFW]", "c")
-  listofsequence_clean[i] = str_replace_all(listofsequence_clean[i],"[ILVAG]", "d")
-  listofsequence_clean[i] = str_replace_all(listofsequence_clean[i],"[P]", "e")
-  listofsequence_clean[i] = str_replace_all(listofsequence_clean[i],"[MC]", "f")
-  listofsequence_clean[i] = str_replace_all(listofsequence_clean[i],"[ST]", "g")
-  listofsequence_clean[i] = str_replace_all(listofsequence_clean[i],"[QN]", "h")
-}
-count =1
-pattern = c()
-for(i in 1:length(amino))
-{
-  for(j in 1:length(amino))
-  {
-    pattern[count] = str_c(amino[i],amino[j])
-    count =count +1
-  }
+
+amino_map <- list(
+  "a" = "[DE]",
+  "b" = "[RHK]",
+  "c" = "[YFW]",
+  "d" = "[ILVAG]",
+  "e" = "[P]",
+  "f" = "[MC]",
+  "g" = "[ST]",
+  "h" = "[QN]"
+)
+for (key in names(amino_map)) {
+  pattern <- amino_map[[key]]
+  listofsequence_clean <- str_replace_all(listofsequence_clean, pattern, key)
 }
 
+# Generate all dipeptide combinations using expand.grid
+combinations <- expand.grid(amino, amino, stringsAsFactors = FALSE)
 
+# Combine the elements of each row to create the pattern vector
+pattern <- with(combinations, paste0(Var2, Var1))
 
 #Finding the frequency
-
 frequency =list()
 LOF =list()
 for(i in 1:length(listofsequence_clean)) {
@@ -46,9 +43,7 @@ for(i in 1:length(LOF))
   rownames(LOF[[i]]) = amino
 }
 
-#Findind Infima and Suprema
-
-
+#Finding Infima and Suprema
 infima = matrix(,ncol =8 ,nrow=8)
 suprema =matrix(,ncol =8, nrow=8)
 loi= list()
